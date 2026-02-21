@@ -33,20 +33,20 @@ def download_nsl_kdd():
     os.makedirs('../../data/raw', exist_ok=True)
     
     # Download training data
-    print("\n📥 Downloading training data...")
+    print("\n Downloading training data...")
     train_df = pd.read_csv(train_url, names=columns)
     train_df.to_csv('../../data/raw/KDDTrain+.csv', index=False)
-    print(f"✅ Training data saved: {train_df.shape[0]} records, {train_df.shape[1]} features")
+    print(f" Training data saved: {train_df.shape[0]} records, {train_df.shape[1]} features")
     
     # Download test data
-    print("\n📥 Downloading test data...")
+    print("\n Downloading test data...")
     test_df = pd.read_csv(test_url, names=columns)
     test_df.to_csv('../../data/raw/KDDTest+.csv', index=False)
-    print(f"✅ Test data saved: {test_df.shape[0]} records, {test_df.shape[1]} features")
+    print(f" Test data saved: {test_df.shape[0]} records, {test_df.shape[1]} features")
     
     # Display basic info
     print("\n" + "="*60)
-    print("📊 DATASET OVERVIEW")
+    print("DATASET OVERVIEW")
     print("="*60)
     print(f"\nTraining set shape: {train_df.shape}")
     print(f"Test set shape: {test_df.shape}")
@@ -61,15 +61,15 @@ def download_nsl_kdd():
     normal_count = (train_df['is_attack'] == 0).sum()
     attack_count = (train_df['is_attack'] == 1).sum()
     
-    print(f"\n📈 Binary Classification:")
+    print(f"\n Binary Classification:")
     print(f"  Normal traffic: {normal_count:,} ({normal_count/len(train_df)*100:.1f}%)")
     print(f"  Attack traffic: {attack_count:,} ({attack_count/len(train_df)*100:.1f}%)")
     
-    print("\n📋 Sample Data (first 3 rows):")
+    print("\n Sample Data (first 3 rows):")
     print(train_df[['duration', 'protocol_type', 'service', 'src_bytes', 'dst_bytes', 'label']].head(3))
     
-    print("\n✅ Dataset download complete!")
-    print(f"📁 Files saved to: data/raw/")
+    print("\n Dataset download complete!")
+    print(f" Files saved to: data/raw/")
     
     return train_df, test_df
 
