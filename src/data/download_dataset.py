@@ -51,7 +51,7 @@ def download_nsl_kdd():
     print(f"\nTraining set shape: {train_df.shape}")
     print(f"Test set shape: {test_df.shape}")
     
-    print("\n🎯 Attack Type Distribution (Training Data):")
+    print("\n Attack Type Distribution (Training Data):")
     attack_counts = train_df['label'].value_counts()
     for label, count in attack_counts.head(10).items():
         print(f"  {label:20s}: {count:,}")
