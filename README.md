@@ -24,7 +24,7 @@ An intelligent Intrusion Detection System (IDS) that uses machine learning to de
 
 1. Clone the repository
 ```bash
-git clone https://github.com/YOUR_USERNAME/ml-intrusion-detection-system.git
+git clone https://github.com/tonyt243/ml-intrusion-detection-system.git
 cd ml-intrusion-detection-system
 ```
 
