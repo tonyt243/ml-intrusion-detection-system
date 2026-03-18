@@ -8,7 +8,6 @@ from datetime import datetime
 import asyncio
 import json
 from dotenv import load_dotenv
-from detector import RealTimeDetector
 
 
 load_dotenv()
@@ -70,7 +69,7 @@ def classify_attack_type(packet_features: dict) -> str:
 # Add parent directory to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from detection.detector import RealTimeDetector
+from detector import RealTimeDetector
 
 # Initialize FastAPI app
 app = FastAPI(
