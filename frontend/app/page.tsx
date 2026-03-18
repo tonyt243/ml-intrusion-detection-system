@@ -11,6 +11,7 @@ interface Detection {
   is_attack: boolean;
   alert_level: string;
   reason: string;
+  attack_type?: string;  
   predictions: {
     random_forest?: {
       is_attack: boolean;
@@ -384,6 +385,12 @@ export default function Dashboard() {
                             {detection.alert_level}
                           </span>
                         )}
+                        {/* Show attack type */}
+                        {detection.attack_type && (
+                          <span className="text-xs px-2 py-1 rounded bg-orange-600">
+                            {detection.attack_type}
+                          </span>
+                        )}
                       </div>
                       <div className="text-sm text-gray-400">
                         {detection.predictions?.random_forest?.confidence 
@@ -413,6 +420,7 @@ export default function Dashboard() {
                 <tr className="text-left border-b border-gray-700">
                   <th className="pb-2 text-gray-400">Timestamp</th>
                   <th className="pb-2 text-gray-400">Status</th>
+                  <th className="pb-2 text-gray-400">Attack Type</th>
                   <th className="pb-2 text-gray-400">Alert Level</th>
                   <th className="pb-2 text-gray-400">Reason</th>
                   <th className="pb-2 text-gray-400">RF Confidence</th>
@@ -435,6 +443,15 @@ export default function Dashboard() {
                           {detection.is_attack ? 'Attack' : 'Normal'}
                         </span>
                       </td>
+                      <td className="py-2 text-sm">
+                        {detection.attack_type ? (
+                          <span className="px-2 py-1 rounded text-xs bg-orange-900 text-orange-200">
+                            {detection.attack_type}
+                          </span>
+                        ) : (
+                          <span className="text-gray-500">-</span>
+                        )}
+                      </td>
                       <td className="py-2 text-sm">{detection.alert_level || 'N/A'}</td>
                       <td className="py-2 text-sm">{detection.reason}</td>
                       <td className="py-2 text-sm">
@@ -449,7 +466,7 @@ export default function Dashboard() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={6} className="py-8 text-center text-gray-500">
+                    <td colSpan={7} className="py-8 text-center text-gray-500">
                       No detections yet - waiting for traffic analysis...
                     </td>
                   </tr>

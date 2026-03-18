@@ -8,6 +8,56 @@ from datetime import datetime
 import asyncio
 import json
 
+def classify_attack_type(packet_features: dict) -> str:
+    """
+    Classify attack type based on packet characteristics
+    Uses heuristic rules based on NSL-KDD attack patterns
+    """
+    # Extract key features
+    serror_rate = packet_features.get('serror_rate', 0)
+    count = packet_features.get('count', 0)
+    dst_host_count = packet_features.get('dst_host_count', 0)
+    flag = packet_features.get('flag', '')
+    service = packet_features.get('service', '')
+    protocol = packet_features.get('protocol_type', '')
+    src_bytes = packet_features.get('src_bytes', 0)
+    dst_bytes = packet_features.get('dst_bytes', 0)
+    num_failed_logins = packet_features.get('num_failed_logins', 0)
+    
+    # Port Scan characteristics
+    if serror_rate > 0.8 and count > 150 and flag in ['REJ', 'RSTO', 'S0']:
+        return 'Port Scan'
+    
+    # DoS/DDoS characteristics  
+    if count > 300 and serror_rate > 0.7 and service in ['http', 'private', 'ecr_i']:
+        return 'DoS Attack'
+    
+    # Brute Force characteristics
+    if num_failed_logins > 2 or (count > 50 and service in ['ftp', 'ssh', 'telnet']):
+        return 'Brute Force'
+    
+    # IP Sweep/Probe characteristics
+    if protocol == 'icmp' and dst_host_count > 100:
+        return 'IP Sweep'
+    
+    if dst_host_count > 200 and count > 200:
+        return 'Network Probe'
+    
+    # Neptune (SYN Flood)
+    if flag == 'S0' and count > 300:
+        return 'SYN Flood'
+    
+    # Smurf (ICMP Flood)
+    if protocol == 'icmp' and count > 300:
+        return 'ICMP Flood'
+    
+    # Data Exfiltration
+    if src_bytes > 50000 or dst_bytes > 50000:
+        return 'Data Exfiltration'
+    
+    # Generic attack if we can't classify
+    return 'Unknown Attack'
+
 # Add parent directory to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -86,6 +136,7 @@ class DetectionResponse(BaseModel):
     is_attack: bool
     alert_level: str
     reason: str
+    attack_type: Optional[str] = None  
     predictions: Dict[str, Any]
 
 class Statistics(BaseModel):
@@ -140,12 +191,18 @@ async def detect_packet(packet: PacketFeatures):
         # Run detection
         result = detector.detect(packet_dict)
         
+        # Classify attack type if it's an attack
+        attack_type = None
+        if result['is_attack']:
+            attack_type = classify_attack_type(packet_dict)
+        
         # Format response
         response = {
             "timestamp": result['timestamp'].isoformat(),
             "is_attack": result['is_attack'],
             "alert_level": result.get('alert_level', 'UNKNOWN'),
             "reason": result.get('reason', 'No reason provided'),
+            "attack_type": attack_type,  # NEW!
             "predictions": result['predictions']
         }
         
@@ -197,14 +254,20 @@ async def get_recent_detections(limit: int = 10):
         stats = detector.get_statistics()
         recent = stats.get('recent_detections', [])
         
-        # Format for JSON serialization
+        # Format for JSON serialization and ADD attack_type
         formatted = []
         for detection in recent[-limit:]:
+            # Classify attack type if it's an attack
+            attack_type = None
+            if detection.get('is_attack'):
+                attack_type = classify_attack_type(detection.get('packet_features', {}))
+            
             formatted.append({
                 "timestamp": detection['timestamp'].isoformat(),
                 "is_attack": detection['is_attack'],
                 "alert_level": detection.get('alert_level', 'UNKNOWN'),
                 "reason": detection.get('reason', 'No reason'),
+                "attack_type": attack_type,  # ADD THIS!
                 "predictions": detection['predictions']
             })
         
