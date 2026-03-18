@@ -8,6 +8,7 @@ from datetime import datetime
 import asyncio
 import json
 from dotenv import load_dotenv
+from detector import RealTimeDetector
 
 
 load_dotenv()
