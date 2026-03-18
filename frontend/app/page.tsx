@@ -264,7 +264,7 @@ export default function Dashboard() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-5xl font-bold mb-2 bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
-                ML-Based Intrusion Detection System
+                Aurelius - Intrusion Detection System
               </h1>
               <p className="text-gray-400">Real-time network traffic analysis using machine learning</p>
             </div>
@@ -326,7 +326,7 @@ export default function Dashboard() {
           className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 mb-8 border border-gray-700/50 shadow-2xl"
         >
           <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-            <span className="text-2xl">🧪</span> Test Traffic Generator
+            <span className="text-2xl">Test Traffic Generator</span>
           </h2>
           <p className="text-gray-400 text-sm mb-4">
             Send sample packets to test the detection system
