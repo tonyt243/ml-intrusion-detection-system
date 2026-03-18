@@ -59,6 +59,180 @@ export default function Dashboard() {
     }
   };
 
+// Test with sample traffic - randomized
+  const sendNormalTraffic = async () => {
+    const normalPacket = {
+      duration: Math.floor(Math.random() * 100),
+      protocol_type: ['tcp', 'udp'][Math.floor(Math.random() * 2)],
+      service: ['http', 'ftp', 'smtp', 'ssh'][Math.floor(Math.random() * 4)],
+      flag: 'SF',
+      src_bytes: Math.floor(Math.random() * 5000) + 100,
+      dst_bytes: Math.floor(Math.random() * 10000) + 500,
+      land: 0,
+      wrong_fragment: 0,
+      urgent: 0,
+      hot: 0,
+      num_failed_logins: 0,
+      logged_in: Math.random() > 0.3 ? 1 : 0,
+      num_compromised: 0,
+      root_shell: 0,
+      su_attempted: 0,
+      num_root: 0,
+      num_file_creations: 0,
+      num_shells: 0,
+      num_access_files: 0,
+      num_outbound_cmds: 0,
+      is_host_login: 0,
+      is_guest_login: 0,
+      count: Math.floor(Math.random() * 20) + 1,
+      srv_count: Math.floor(Math.random() * 20) + 1,
+      serror_rate: Math.random() * 0.1,
+      srv_serror_rate: Math.random() * 0.1,
+      rerror_rate: Math.random() * 0.1,
+      srv_rerror_rate: Math.random() * 0.1,
+      same_srv_rate: 0.8 + Math.random() * 0.2,
+      diff_srv_rate: Math.random() * 0.2,
+      srv_diff_host_rate: Math.random() * 0.2,
+      dst_host_count: Math.floor(Math.random() * 50) + 1,
+      dst_host_srv_count: Math.floor(Math.random() * 50) + 1,
+      dst_host_same_srv_rate: 0.7 + Math.random() * 0.3,
+      dst_host_diff_srv_rate: Math.random() * 0.3,
+      dst_host_same_src_port_rate: Math.random() * 0.5,
+      dst_host_srv_diff_host_rate: Math.random() * 0.2,
+      dst_host_serror_rate: Math.random() * 0.1,
+      dst_host_srv_serror_rate: Math.random() * 0.1,
+      dst_host_rerror_rate: Math.random() * 0.1,
+      dst_host_srv_rerror_rate: Math.random() * 0.1
+    };
+
+    try {
+      await axios.post(`${API_URL}/detect`, normalPacket);
+      await handleRefresh();
+    } catch (error) {
+      console.error('Error sending normal traffic:', error);
+    }
+  };
+
+  const sendAttackTraffic = async () => {
+    // Random attack types
+    const attackTypes = [
+      // Port Scan
+      {
+        name: 'Port Scan',
+        protocol_type: 'tcp',
+        service: 'private',
+        flag: 'REJ',
+        src_bytes: 0,
+        dst_bytes: 0,
+        count: Math.floor(Math.random() * 300) + 200,
+        srv_count: Math.floor(Math.random() * 300) + 200,
+        serror_rate: 0.9 + Math.random() * 0.1,
+        srv_serror_rate: 0.9 + Math.random() * 0.1,
+        dst_host_count: Math.floor(Math.random() * 100) + 150,
+        dst_host_serror_rate: 0.9 + Math.random() * 0.1
+      },
+      // DoS Attack
+      {
+        name: 'DoS Attack',
+        protocol_type: 'tcp',
+        service: 'http',
+        flag: 'S0',
+        src_bytes: Math.floor(Math.random() * 1000),
+        dst_bytes: 0,
+        count: Math.floor(Math.random() * 500) + 400,
+        srv_count: Math.floor(Math.random() * 500) + 400,
+        serror_rate: 0.8 + Math.random() * 0.2,
+        srv_serror_rate: 0.8 + Math.random() * 0.2,
+        dst_host_count: Math.floor(Math.random() * 200) + 100,
+        dst_host_serror_rate: 0.7 + Math.random() * 0.3
+      },
+      // Brute Force
+      {
+        name: 'Brute Force',
+        protocol_type: 'tcp',
+        service: 'ftp',
+        flag: 'SF',
+        src_bytes: Math.floor(Math.random() * 500) + 50,
+        dst_bytes: Math.floor(Math.random() * 500) + 50,
+        count: Math.floor(Math.random() * 100) + 50,
+        srv_count: Math.floor(Math.random() * 100) + 50,
+        serror_rate: 0.3 + Math.random() * 0.4,
+        srv_serror_rate: 0.3 + Math.random() * 0.4,
+        dst_host_count: Math.floor(Math.random() * 50) + 20,
+        dst_host_serror_rate: 0.4 + Math.random() * 0.3
+      },
+      // IP Sweep
+      {
+        name: 'IP Sweep',
+        protocol_type: 'icmp',
+        service: 'eco_i',
+        flag: 'SF',
+        src_bytes: 8,
+        dst_bytes: 0,
+        count: Math.floor(Math.random() * 400) + 300,
+        srv_count: Math.floor(Math.random() * 400) + 300,
+        serror_rate: 0,
+        srv_serror_rate: 0,
+        dst_host_count: Math.floor(Math.random() * 200) + 200,
+        dst_host_serror_rate: 0
+      }
+    ];
+
+    // Pick random attack
+    const attack = attackTypes[Math.floor(Math.random() * attackTypes.length)];
+
+    const attackPacket = {
+      duration: Math.floor(Math.random() * 10),
+      protocol_type: attack.protocol_type,
+      service: attack.service,
+      flag: attack.flag,
+      src_bytes: attack.src_bytes,
+      dst_bytes: attack.dst_bytes,
+      land: 0,
+      wrong_fragment: 0,
+      urgent: 0,
+      hot: Math.floor(Math.random() * 3),
+      num_failed_logins: Math.floor(Math.random() * 5),
+      logged_in: 0,
+      num_compromised: Math.floor(Math.random() * 2),
+      root_shell: Math.floor(Math.random() * 2),
+      su_attempted: Math.floor(Math.random() * 2),
+      num_root: Math.floor(Math.random() * 3),
+      num_file_creations: 0,
+      num_shells: 0,
+      num_access_files: 0,
+      num_outbound_cmds: 0,
+      is_host_login: 0,
+      is_guest_login: 0,
+      count: attack.count,
+      srv_count: attack.srv_count,
+      serror_rate: attack.serror_rate,
+      srv_serror_rate: attack.srv_serror_rate,
+      rerror_rate: Math.random() * 0.2,
+      srv_rerror_rate: Math.random() * 0.2,
+      same_srv_rate: 0.8 + Math.random() * 0.2,
+      diff_srv_rate: Math.random() * 0.2,
+      srv_diff_host_rate: Math.random() * 0.3,
+      dst_host_count: attack.dst_host_count,
+      dst_host_srv_count: Math.floor(Math.random() * 200) + 100,
+      dst_host_same_srv_rate: 0.5 + Math.random() * 0.5,
+      dst_host_diff_srv_rate: Math.random() * 0.4,
+      dst_host_same_src_port_rate: Math.random() * 0.3,
+      dst_host_srv_diff_host_rate: Math.random() * 0.3,
+      dst_host_serror_rate: attack.dst_host_serror_rate,
+      dst_host_srv_serror_rate: 0.5 + Math.random() * 0.5,
+      dst_host_rerror_rate: Math.random() * 0.3,
+      dst_host_srv_rerror_rate: Math.random() * 0.3
+    };
+
+    try {
+      await axios.post(`${API_URL}/detect`, attackPacket);
+      await handleRefresh();
+    } catch (error) {
+      console.error('Error sending attack traffic:', error);
+    }
+  };
+
   // Manual refresh both
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -105,6 +279,28 @@ export default function Dashboard() {
                 {isRefreshing ? '🔄 Refreshing...' : '🔄 Refresh'}
               </button>
             </div>
+          </div>
+        </div>
+
+        {/* Test Traffic Panel */}
+        <div className="bg-gray-800 rounded-lg p-6 mb-8 border border-gray-700">
+          <h2 className="text-xl font-semibold mb-4">🧪 Test Traffic Generator</h2>
+          <p className="text-gray-400 text-sm mb-4">
+            Send sample packets to test the detection system. Click buttons below to simulate normal traffic or attacks.
+          </p>
+          <div className="flex gap-4">
+            <button
+              onClick={sendNormalTraffic}
+              className="px-6 py-3 bg-green-600 hover:bg-green-700 rounded-lg font-semibold transition-colors"
+            >
+              ✅ Send Normal Traffic
+            </button>
+            <button
+              onClick={sendAttackTraffic}
+              className="px-6 py-3 bg-red-600 hover:bg-red-700 rounded-lg font-semibold transition-colors"
+            >
+              🚨 Send Attack Traffic (Port Scan)
+            </button>
           </div>
         </div>
 
