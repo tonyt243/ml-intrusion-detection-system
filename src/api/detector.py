@@ -6,7 +6,7 @@ import os
 
 #Initialize real-time detector with trained models
 class RealTimeDetector:
-    def __init__(self, model_path='../../data/models/', model_type='random_forest'):
+    def __init__(self, model_path='./models/', model_type='random_forest'):
         self.model_path = model_path
         self.model_type = model_type
         self.detection_history = []
