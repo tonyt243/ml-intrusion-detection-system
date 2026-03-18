@@ -109,6 +109,15 @@ export default function Dashboard() {
     try {
       await axios.post(`${API_URL}/detect`, normalPacket);
       await handleRefresh();
+       // Clear detection history
+  const handleClear = async () => {
+    try {
+      await axios.post(`${API_URL}/clear`);
+      await handleRefresh();
+    } catch (error) {
+      console.error('Error clearing history:', error);
+    }
+  };
     } catch (error) {
       console.error('Error sending normal traffic:', error);
     }
@@ -240,6 +249,15 @@ export default function Dashboard() {
     await Promise.all([fetchStats(), fetchDetections()]);
     setIsRefreshing(false);
   };
+// Clear data
+  const handleClear = async () => {
+    try {
+      await axios.post(`${API_URL}/clear`);
+      await handleRefresh();
+    } catch (error) {
+      console.error('Error clearing history:', error);
+    }
+  };
 
   // Initial load only
   useEffect(() => {
@@ -268,6 +286,12 @@ export default function Dashboard() {
                 <div className={`w-3 h-3 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
                 <span className="text-sm text-gray-400">{isConnected ? 'Connected' : 'Disconnected'}</span>
               </div>
+              <button
+                onClick={handleClear}
+                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg font-semibold transition-colors"
+              >
+                 Clear History
+              </button>
               <button
                 onClick={handleRefresh}
                 disabled={isRefreshing}
