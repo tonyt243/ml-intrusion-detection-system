@@ -7,6 +7,14 @@ import os
 from datetime import datetime
 import asyncio
 import json
+from dotenv import load_dotenv
+
+
+load_dotenv()
+
+# Configuration
+PORT = int(os.getenv("PORT", 8000))
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 
 def classify_attack_type(packet_features: dict) -> str:
     """
@@ -73,7 +81,7 @@ app = FastAPI(
 # CORS middleware (allows frontend to connect)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  
+    allow_origins=[FRONTEND_URL,"http://localhost:3000"],  
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -365,6 +373,6 @@ if __name__ == "__main__":
     uvicorn.run(
         app,
         host="0.0.0.0",
-        port=8000,
+        port=PORT,
         log_level="info"
     )
