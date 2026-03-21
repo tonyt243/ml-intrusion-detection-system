@@ -33,6 +33,25 @@ interface Statistics {
   attack_rate: number;
 }
 
+// Live clock component
+const LiveClock = () => {
+  const [time, setTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTime(new Date());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  return (
+    <div className="text-base opacity-80">
+      {time.toLocaleTimeString()}
+    </div>
+  );
+};
+
 export default function Dashboard() {
   const [statistics, setStatistics] = useState<Statistics | null>(null);
   const [recentDetections, setRecentDetections] = useState<Detection[]>([]);
@@ -287,7 +306,7 @@ export default function Dashboard() {
       {/* CRT glow overlay */}
       <div className="crt-glow pointer-events-none"></div>
 
-      <div className="max-w-7xl mx-auto relative z-10">
+      <div className="max-w-[95%] mx-auto relative z-10">
         {/* Header */}
         <motion.div 
           initial={{ opacity: 0 }}
@@ -297,11 +316,11 @@ export default function Dashboard() {
         >
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h1 className="text-4xl font-bold mb-1 tracking-wider glow-text">
+              <h1 className="text-6xl font-bold mb-2 tracking-wider glow-text">
                 [[ AURELIUS | ML-INTRUSION DETECTION SYSTEM ]]
               </h1>
-              <p className="text-sm opacity-80">NETWORK SECURITY TERMINAL // REAL-TIME THREAT ANALYSIS</p>
-              <p className="text-xs opacity-60 mt-1">SYSTEM ID: ML-IDS-2.6.0 // KERNEL: RANDOM_FOREST + ISOLATION_FOREST</p>
+              <p className="text-lg opacity-80">NETWORK SECURITY TERMINAL // REAL-TIME THREAT ANALYSIS</p>
+              <p className="text-lg opacity-80 mt-1">SYSTEM ID: ML-IDS-2.6.0 // KERNEL: RANDOM_FOREST + ISOLATION_FOREST</p>
             </div>
             <div className="flex flex-col items-end gap-2">
               <div className="flex items-center gap-2">
@@ -310,25 +329,24 @@ export default function Dashboard() {
                   transition={{ repeat: Infinity, duration: 1.5 }}
                   className={`w-3 h-3 border-2 ${isConnected ? 'border-green-400 bg-green-400' : 'border-red-500 bg-red-500'}`}
                 />
-                <span className="text-xs tracking-wider">{isConnected ? '[ONLINE]' : '[OFFLINE]'}</span>
+                <span className="text-s tracking-wider">{isConnected ? '[ONLINE]' : '[OFFLINE]'}</span>
               </div>
-              <div className="text-xs opacity-60">
-                {new Date().toLocaleTimeString()}
-              </div>
+            {/* Live Clock */}
+            <LiveClock /> 
             </div>
           </div>
 
           <div className="flex gap-2">
             <button
               onClick={handleClear}
-              className="px-4 py-2 border-2 border-green-400 bg-black hover:bg-green-400 hover:text-black transition-all text-sm tracking-wider"
+              className="px-6 py-3 border-2 border-green-400 bg-black hover:bg-green-400 hover:text-black transition-all text-lg tracking-wider"
             >
               [CLEAR LOG]
             </button>
             <button
               onClick={handleRefresh}
               disabled={isRefreshing}
-              className="px-4 py-2 border-2 border-green-400 bg-black hover:bg-green-400 hover:text-black transition-all text-sm tracking-wider disabled:opacity-50"
+              className="px-6 py-3 border-2 border-green-400 bg-black hover:bg-green-400 hover:text-black transition-all text-lg tracking-wider disabled:opacity-50"
             >
               {isRefreshing ? '[SCANNING...]' : '[REFRESH]'}
             </button>
@@ -342,7 +360,7 @@ export default function Dashboard() {
           transition={{ delay: 0.1 }}
           className="border-4 border-green-400 p-4 mb-6 bg-black/80"
         >
-          <h2 className="text-xl mb-3 tracking-wider">╔═══ PACKET INJECTION TOOL ═══╗</h2>
+          <h2 className="text-3xl mb-4 tracking-wider">╔═══ PACKET INJECTION TOOL ═══╗</h2>
           <div className="flex gap-3">
             <button
               onClick={sendNormalTraffic}
@@ -374,8 +392,8 @@ export default function Dashboard() {
               transition={{ delay: 0.1 + idx * 0.05 }}
               className={`border-2 ${stat.danger ? 'border-red-500' : 'border-green-400'} p-4 bg-black/80`}
             >
-              <div className={`text-xs mb-1 ${stat.danger ? 'text-red-500' : 'opacity-60'}`}>{stat.label}</div>
-              <div className={`text-3xl font-bold ${stat.danger ? 'text-red-500 glow-text-red' : 'glow-text'}`}>
+              <div className={`text-base mb-2 ${stat.danger ? 'text-red-500' : 'opacity-60'}`}>{stat.label}</div>
+              <div className={`text-6xl font-bold ${stat.danger ? 'text-red-500 glow-text-red' : 'glow-text'}`}>
                 {stat.symbol} {stat.value}
               </div>
             </motion.div>
@@ -386,7 +404,7 @@ export default function Dashboard() {
         <div className="grid grid-cols-2 gap-6 mb-6">
           {/* Pie Chart */}
           <div className="border-4 border-green-400 p-4 bg-black/80">
-            <h2 className="text-xl mb-3 tracking-wider">╔═══ TRAFFIC ANALYSIS ═══╗</h2>
+            <h2 className="text-3xl mb-4 tracking-wider">╔═══ TRAFFIC ANALYSIS ═══╗</h2>
             {pieData.length > 0 && pieData.some(d => d.value > 0) ? (
               <div className="relative">
                 <ResponsiveContainer width="100%" height={250}>
@@ -430,7 +448,7 @@ export default function Dashboard() {
 
           {/* Recent Activity Log */}
           <div className="border-4 border-green-400 p-4 bg-black/80">
-            <h2 className="text-xl mb-3 tracking-wider">╔═══ THREAT LOG ═══╗</h2>
+            <h2 className="text-3xl mb-4 tracking-wider">╔═══ THREAT LOG ═══╗</h2>
             <div className="space-y-1 max-h-[250px] overflow-y-auto custom-scrollbar text-sm">
               {recentDetections.length > 0 ? (
                 recentDetections.map((detection, idx) => (
@@ -488,9 +506,9 @@ export default function Dashboard() {
           transition={{ delay: 0.3 }}
           className="border-4 border-green-400 p-4 bg-black/80"
         >
-          <h2 className="text-xl mb-3 tracking-wider">╔═══ DETAILED DETECTION MATRIX ═══╗</h2>
+          <h2 className="text-3xl mb-4 tracking-wider">╔═══ DETAILED DETECTION MATRIX ═══╗</h2>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-lg">
               <thead>
                 <tr className="border-b-2 border-green-400">
                   <th className="pb-2 text-left">TIMESTAMP</th>
@@ -558,8 +576,8 @@ export default function Dashboard() {
           transition={{ delay: 0.4 }}
           className="mt-6 text-center text-xs opacity-60 border-t-2 border-green-400/30 pt-4"
         >
-          <p>ML-IDS v2.6.0 // RANDOM FOREST (76.77% ACCURACY) + ISOLATION FOREST</p>
-          <p className="mt-1">CSUF CPSC 490 CYBERSECURITY SEMINAR // SECURE TERMINAL ACCESS ONLY</p>
+          <p>RANDOM FOREST (76.77% ACCURACY) + ISOLATION FOREST</p>
+          
         </motion.div>
       </div>
 
@@ -568,10 +586,10 @@ export default function Dashboard() {
   @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
   
   .crt-screen {
-    font-family: 'VT323', monospace;
-    font-size: 2.5rem;
-    animation: flicker 0.15s infinite;
-  }
+  font-family: 'VT323', monospace;
+  font-size: 2.5rem;
+  animation: flicker 0.15s infinite;
+}
 
   @keyframes flicker {
     0% { opacity: 0.97; }
@@ -616,20 +634,18 @@ export default function Dashboard() {
   }
 
   .glow-text {
-    text-shadow: 
-      0 0 10px #00ff41,
-      0 0 20px #00ff41,
-      0 0 30px #00ff41;
-    font-size: 1.2em;
-  }
+  text-shadow: 
+    0 0 5px #00ff41,
+    0 0 10px #00ff41;
+  font-size: 1.2em;
+}
 
-  .glow-text-red {
-    text-shadow: 
-      0 0 10px #ff0040,
-      0 0 20px #ff0040,
-      0 0 30px #ff0040;
-    font-size: 1.2em;
-  }
+.glow-text-red {
+  text-shadow: 
+    0 0 5px #ff0040,
+    0 0 10px #ff0040;
+  font-size: 1.2em;
+}
 
   .custom-scrollbar::-webkit-scrollbar {
     width: 8px;
