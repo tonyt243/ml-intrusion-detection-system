@@ -46,10 +46,15 @@ const LiveClock = () => {
   }, []);
 
   return (
-    <div className="text-base opacity-80">
-      {time.toLocaleTimeString()}
-    </div>
-  );
+  <div className="text-base opacity-80">
+    {time.toLocaleTimeString('en-US', { 
+      hour: '2-digit', 
+      minute: '2-digit', 
+      second: '2-digit',
+      hour12: true 
+    })}
+  </div>
+);
 };
 
 export default function Dashboard() {
@@ -536,7 +541,12 @@ export default function Dashboard() {
                       className="border-b border-green-400/30 hover:bg-green-400/10"
                     >
                       <td className="py-2 opacity-60">
-                        {new Date(detection.timestamp).toLocaleTimeString()}
+                        {new Date(detection.timestamp).toLocaleTimeString('en-US', { 
+                          hour: '2-digit', 
+                          minute: '2-digit', 
+                          second: '2-digit',
+                          hour12: true 
+                        })}
                       </td>
                       <td className="py-2">
                         <span className={detection.is_attack ? 'text-red-500' : 'text-green-400'}>
