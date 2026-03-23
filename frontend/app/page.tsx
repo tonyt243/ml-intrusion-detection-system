@@ -283,8 +283,8 @@ export default function Dashboard() {
             animate={{ opacity: 1 }}
             className="font-mono text-green-400 text-2xl mb-4"
           >
-            <div className="mb-2">INITIALIZING SECURITY TERMINAL...</div>
-            <div className="mb-2">LOADING ML-IDS v2.6...</div>
+            <div className="mb-2">INITIALIZING DETECTION SYSTEM...</div>
+            <div className="mb-2">LOADING ML-IDS v1.0...</div>
             <div className="mb-2">ESTABLISHING SECURE CONNECTION...</div>
             <motion.div
               animate={{ opacity: [1, 0, 1] }}
@@ -320,7 +320,7 @@ export default function Dashboard() {
                 [[ AURELIUS | ML-INTRUSION DETECTION SYSTEM ]]
               </h1>
               <p className="text-lg opacity-80">NETWORK SECURITY TERMINAL // REAL-TIME THREAT ANALYSIS</p>
-              <p className="text-lg opacity-80 mt-1">SYSTEM ID: ML-IDS-2.6.0 // KERNEL: RANDOM_FOREST + ISOLATION_FOREST</p>
+              <p className="text-lg opacity-80 mt-1">SYSTEM ID: ML-IDS-1.0.4 // KERNEL: RANDOM_FOREST + ISOLATION_FOREST</p>
             </div>
             <div className="flex flex-col items-end gap-2">
               <div className="flex items-center gap-2">
@@ -486,7 +486,12 @@ export default function Dashboard() {
                       </div>
                     </div>
                     <div className="text-xs opacity-60 mt-1">
-                      {new Date(detection.timestamp).toLocaleTimeString()}
+                      {new Date(detection.timestamp).toLocaleTimeString('en-US', { 
+                        hour: '2-digit', 
+                        minute: '2-digit', 
+                        second: '2-digit',
+                        hour12: true 
+                      })}
                     </div>
                   </motion.div>
                 ))
