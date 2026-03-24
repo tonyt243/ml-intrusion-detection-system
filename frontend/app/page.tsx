@@ -495,7 +495,8 @@ export default function Dashboard() {
                         hour: '2-digit', 
                         minute: '2-digit', 
                         second: '2-digit',
-                        hour12: true 
+                        hour12: true, 
+                        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
                       })}
                     </div>
                   </motion.div>
@@ -545,7 +546,8 @@ export default function Dashboard() {
                           hour: '2-digit', 
                           minute: '2-digit', 
                           second: '2-digit',
-                          hour12: true 
+                          hour12: true,
+                          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
                         })}
                       </td>
                       <td className="py-2">
