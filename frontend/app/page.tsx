@@ -491,13 +491,15 @@ export default function Dashboard() {
                       </div>
                     </div>
                     <div className="text-xs opacity-60 mt-1">
-                      {new Date(detection.timestamp).toLocaleTimeString('en-US', { 
-                        hour: '2-digit', 
-                        minute: '2-digit', 
-                        second: '2-digit',
-                        hour12: true, 
-                        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
-                      })}
+                      {(() => {
+                        const utcDate = new Date(detection.timestamp.endsWith('Z') ? detection.timestamp : detection.timestamp + 'Z');
+                        return utcDate.toLocaleTimeString('en-US', { 
+                          hour: '2-digit', 
+                          minute: '2-digit', 
+                          second: '2-digit',
+                          hour12: true
+                        });
+                      })()}
                     </div>
                   </motion.div>
                 ))
@@ -542,13 +544,15 @@ export default function Dashboard() {
                       className="border-b border-green-400/30 hover:bg-green-400/10"
                     >
                       <td className="py-2 opacity-60">
-                        {new Date(detection.timestamp).toLocaleTimeString('en-US', { 
-                          hour: '2-digit', 
-                          minute: '2-digit', 
-                          second: '2-digit',
-                          hour12: true,
-                          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
-                        })}
+                        {(() => {
+                          const utcDate = new Date(detection.timestamp.endsWith('Z') ? detection.timestamp : detection.timestamp + 'Z');
+                          return utcDate.toLocaleTimeString('en-US', { 
+                            hour: '2-digit', 
+                            minute: '2-digit', 
+                            second: '2-digit',
+                            hour12: true
+                          });
+                        })()}
                       </td>
                       <td className="py-2">
                         <span className={detection.is_attack ? 'text-red-500' : 'text-green-400'}>
