@@ -4,10 +4,14 @@ from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 import sys
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 import asyncio
 import json
 from dotenv import load_dotenv
+from database import get_db, Detection as DBDetection
+from sqlalchemy import func
+from sqlalchemy.orm import Session
+from fastapi import Depends
 
 
 load_dotenv()
@@ -182,15 +186,9 @@ async def health_check():
     }
 
 @app.post("/detect", response_model=DetectionResponse)
-async def detect_packet(packet: PacketFeatures):
+async def detect_packet(packet: PacketFeatures, db: Session = Depends(get_db)):
     """
-    Detect if a packet is malicious
-    
-    Args:
-        packet: Packet features following NSL-KDD format
-        
-    Returns:
-        Detection result with predictions from both models
+    Detect if a packet is malicious and save to database
     """
     try:
         # Convert Pydantic model to dict
@@ -204,13 +202,34 @@ async def detect_packet(packet: PacketFeatures):
         if result['is_attack']:
             attack_type = classify_attack_type(packet_dict)
         
+        # Save to database
+        db_detection = DBDetection(
+            timestamp=result['timestamp'],
+            is_attack=result['is_attack'],
+            alert_level=result.get('alert_level', 'UNKNOWN'),
+            reason=result.get('reason', 'No reason provided'),
+            attack_type=attack_type,
+            rf_confidence=result['predictions'].get('random_forest', {}).get('confidence'),
+            rf_attack_probability=result['predictions'].get('random_forest', {}).get('attack_probability'),
+            iso_anomaly_score=result['predictions'].get('isolation_forest', {}).get('anomaly_score'),
+            protocol_type=packet_dict.get('protocol_type'),
+            service=packet_dict.get('service'),
+            flag=packet_dict.get('flag'),
+            src_bytes=packet_dict.get('src_bytes'),
+            dst_bytes=packet_dict.get('dst_bytes')
+        )
+        
+        db.add(db_detection)
+        db.commit()
+        db.refresh(db_detection)
+        
         # Format response
         response = {
             "timestamp": result['timestamp'].isoformat(),
             "is_attack": result['is_attack'],
             "alert_level": result.get('alert_level', 'UNKNOWN'),
             "reason": result.get('reason', 'No reason provided'),
-            "attack_type": attack_type,  # NEW!
+            "attack_type": attack_type,
             "predictions": result['predictions']
         }
         
@@ -220,63 +239,67 @@ async def detect_packet(packet: PacketFeatures):
         raise HTTPException(status_code=500, detail=f"Detection error: {str(e)}")
 
 @app.get("/statistics", response_model=Statistics)
-async def get_statistics():
+async def get_statistics(db: Session = Depends(get_db)):
     """
-    Get detection statistics
-    
-    Returns:
-        Statistics including total packets, attacks detected, and attack rate
+    Get detection statistics from database
     """
     try:
-        stats = detector.get_statistics()
-        return stats
+        total_packets = db.query(DBDetection).count()
+        attacks_detected = db.query(DBDetection).filter(DBDetection.is_attack == True).count()
+        normal_packets = total_packets - attacks_detected
+        attack_rate = attacks_detected / total_packets if total_packets > 0 else 0.0
+        
+        return {
+            "total_packets": total_packets,
+            "attacks_detected": attacks_detected,
+            "normal_packets": normal_packets,
+            "attack_rate": attack_rate
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Statistics error: {str(e)}")
 
 @app.post("/clear")
-async def clear_history():
+async def clear_history(db: Session = Depends(get_db)):
     """
-    Clear detection history
-    
-    Returns:
-        Confirmation message
+    Clear all detections from database
     """
     try:
-        detector.clear_history()
+        db.query(DBDetection).delete()
+        db.commit()
+        detector.clear_history()  # Also clear in-memory
         return {"message": "Detection history cleared successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Clear error: {str(e)}")
 
 @app.get("/recent")
-async def get_recent_detections(limit: int = 10):
+async def get_recent_detections(limit: int = 10, db: Session = Depends(get_db)):
     """
-    Get recent detections
-    
-    Args:
-        limit: Number of recent detections to return (default 10)
-        
-    Returns:
-        List of recent detection results
+    Get recent detections from database
     """
     try:
-        stats = detector.get_statistics()
-        recent = stats.get('recent_detections', [])
+        # Query recent detections, ordered by timestamp descending
+        recent = db.query(DBDetection).order_by(DBDetection.timestamp.desc()).limit(limit).all()
         
-        # Format for JSON serialization and ADD attack_type
+        # Format for response
         formatted = []
-        for detection in recent[-limit:]:
-            # Classify attack type if it's an attack
-            attack_type = None
-            if detection.get('is_attack'):
-                attack_type = classify_attack_type(detection.get('packet_features', {}))
-            
+        for detection in recent:
             formatted.append({
-                "timestamp": detection['timestamp'].isoformat(),
-                "is_attack": detection['is_attack'],
-                "alert_level": detection.get('alert_level', 'UNKNOWN'),
-                "reason": detection.get('reason', 'No reason'),
-                "attack_type": attack_type,  # ADD THIS!
-                "predictions": detection['predictions']
+                "timestamp": detection.timestamp.isoformat(),
+                "is_attack": detection.is_attack,
+                "alert_level": detection.alert_level,
+                "reason": detection.reason,
+                "attack_type": detection.attack_type,
+                "predictions": {
+                    "random_forest": {
+                        "is_attack": detection.is_attack,
+                        "confidence": detection.rf_confidence or 0.0,
+                        "attack_probability": detection.rf_attack_probability or 0.0
+                    },
+                    "isolation_forest": {
+                        "is_attack": detection.is_attack,
+                        "anomaly_score": detection.iso_anomaly_score or 0.0
+                    }
+                }
             })
         
         return {"recent_detections": formatted, "count": len(formatted)}
@@ -284,6 +307,105 @@ async def get_recent_detections(limit: int = 10):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Recent detections error: {str(e)}")
 
+@app.get("/analytics/hourly")
+async def get_hourly_stats(hours: int = 24, db: Session = Depends(get_db)):
+    """
+    Get detection statistics grouped by hour for the last N hours
+    """
+    try:
+        # Calculate time threshold
+        time_threshold = datetime.utcnow() - timedelta(hours=hours)
+        
+        # Query detections in time range
+        detections = db.query(DBDetection).filter(
+            DBDetection.timestamp >= time_threshold
+        ).all()
+        
+        # Group by hour
+        hourly_data = {}
+        for detection in detections:
+            hour_key = detection.timestamp.strftime('%Y-%m-%d %H:00')
+            if hour_key not in hourly_data:
+                hourly_data[hour_key] = {'total': 0, 'attacks': 0, 'normal': 0}
+            
+            hourly_data[hour_key]['total'] += 1
+            if detection.is_attack:
+                hourly_data[hour_key]['attacks'] += 1
+            else:
+                hourly_data[hour_key]['normal'] += 1
+        
+        # Format for chart
+        result = []
+        for hour, data in sorted(hourly_data.items()):
+            result.append({
+                'hour': hour,
+                'total': data['total'],
+                'attacks': data['attacks'],
+                'normal': data['normal'],
+                'attack_rate': data['attacks'] / data['total'] if data['total'] > 0 else 0
+            })
+        
+        return {"data": result, "hours": hours}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Analytics error: {str(e)}")
+
+
+@app.get("/analytics/attack-types")
+async def get_attack_type_breakdown(db: Session = Depends(get_db)):
+    """
+    Get breakdown of attacks by type
+    """
+    try:
+        # Query all attacks
+        attacks = db.query(DBDetection).filter(
+            DBDetection.is_attack == True,
+            DBDetection.attack_type.isnot(None)
+        ).all()
+        
+        # Count by type
+        type_counts = {}
+        for attack in attacks:
+            attack_type = attack.attack_type or 'Unknown'
+            type_counts[attack_type] = type_counts.get(attack_type, 0) + 1
+        
+        # Format for chart
+        result = [
+            {'type': attack_type, 'count': count}
+            for attack_type, count in sorted(type_counts.items(), key=lambda x: x[1], reverse=True)
+        ]
+        
+        return {"data": result, "total_attacks": len(attacks)}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Attack type breakdown error: {str(e)}")
+
+
+@app.get("/analytics/timeline")
+async def get_detection_timeline(limit: int = 100, db: Session = Depends(get_db)):
+    """
+    Get timeline of detections for visualization
+    """
+    try:
+        # Get recent detections
+        detections = db.query(DBDetection).order_by(
+            DBDetection.timestamp.desc()
+        ).limit(limit).all()
+        
+        # Format for time series chart
+        result = []
+        for detection in reversed(detections):  # Reverse to get chronological order
+            result.append({
+                'timestamp': detection.timestamp.isoformat(),
+                'is_attack': detection.is_attack,
+                'attack_type': detection.attack_type,
+                'confidence': detection.rf_confidence
+            })
+        
+        return {"data": result, "count": len(result)}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Timeline error: {str(e)}")
 
 # WEBSOCKET FOR REAL-TIME UPDATES
 class ConnectionManager:

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import axios from 'axios';
+import Link from 'next/link';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -355,6 +356,12 @@ export default function Dashboard() {
             >
               {isRefreshing ? '[SCANNING...]' : '[REFRESH]'}
             </button>
+            <Link
+              href="/analytics"
+              className="px-6 py-3 border-2 border-amber-400 bg-black hover:bg-amber-400 hover:text-black transition-all text-lg tracking-wider text-amber-400 inline-block"
+            >
+              [ANALYTICS]
+            </Link>
           </div>
         </motion.div>
 
