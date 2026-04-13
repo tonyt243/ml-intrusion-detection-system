@@ -11,7 +11,7 @@ DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./detections.db")
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
-print(f" Connecting to database...")
+print(f"Connecting to database...")
 
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -45,9 +45,9 @@ class Detection(Base):
 
 
 # Create tables if they don't exist
-print(" Creating database tables...")
+print("Creating database tables...")
 Base.metadata.create_all(bind=engine)
-print(" Database ready!")
+print("Database ready")
 
 
 def get_db():

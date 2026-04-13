@@ -16,7 +16,7 @@ export default function Analytics() {
   const fetchAnalytics = async () => {
     try {
       const [hourly, types, time] = await Promise.all([
-        axios.get(`${API_URL}/analytics/hourly?hours=24`),
+        axios.get(`${API_URL}/analytics/hourly?hours=168`),
         axios.get(`${API_URL}/analytics/attack-types`),
         axios.get(`${API_URL}/analytics/timeline?limit=50`)
       ]);
@@ -65,13 +65,13 @@ export default function Analytics() {
           animate={{ opacity: 1 }}
           className="border-4 border-green-400 p-4 mb-6 bg-black/80"
         >
-          <h2 className="text-3xl mb-4 tracking-wider">╔═══ DETECTIONS BY HOUR (LAST 24H) ═══╗</h2>
+          <h2 className="text-3xl mb-4 tracking-wider">╔═══ DETECTIONS BY WEEK (LAST 7 DAYS) ═══╗</h2>
           {hourlyData.length > 0 ? (
             <ResponsiveContainer width="100%" height={350}>
               <LineChart data={hourlyData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#00ff41" opacity={0.1} />
                 <XAxis 
-                  dataKey="hour" 
+                  dataKey="date" 
                   stroke="#00ff41"
                   tick={{ fill: '#00ff41', fontSize: 14 }}
                   angle={-45}

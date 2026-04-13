@@ -308,7 +308,7 @@ async def get_recent_detections(limit: int = 10, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Recent detections error: {str(e)}")
 
 @app.get("/analytics/hourly")
-async def get_hourly_stats(hours: int = 24, db: Session = Depends(get_db)):
+async def get_hourly_stats(hours: int = 168, db: Session = Depends(get_db)):
     """
     Get detection statistics grouped by hour for the last N hours
     """
@@ -324,7 +324,7 @@ async def get_hourly_stats(hours: int = 24, db: Session = Depends(get_db)):
         # Group by hour
         hourly_data = {}
         for detection in detections:
-            hour_key = detection.timestamp.strftime('%Y-%m-%d %H:00')
+            hour_key = detection.timestamp.strftime('%Y-%m-%d')
             if hour_key not in hourly_data:
                 hourly_data[hour_key] = {'total': 0, 'attacks': 0, 'normal': 0}
             
@@ -338,7 +338,7 @@ async def get_hourly_stats(hours: int = 24, db: Session = Depends(get_db)):
         result = []
         for hour, data in sorted(hourly_data.items()):
             result.append({
-                'hour': hour,
+                'date': hour,
                 'total': data['total'],
                 'attacks': data['attacks'],
                 'normal': data['normal'],
