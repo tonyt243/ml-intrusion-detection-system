@@ -32,9 +32,8 @@ This system monitors network traffic in real-time and uses machine learning to d
 - Enables long-term trend analysis and reporting
 
 ## Architecture
-
-User Interface (Vercel - Next.js)
 ```
+User Interface (Vercel - Next.js)
 |
 | HTTP/REST API
 |
