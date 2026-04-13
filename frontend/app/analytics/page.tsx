@@ -59,13 +59,13 @@ export default function Analytics() {
           </div>
         </div>
 
-        {/* Hourly Stats Chart */}
+        {/* Weekly Stats Chart */}
         <motion.div 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           className="border-4 border-green-400 p-4 mb-6 bg-black/80"
         >
-          <h2 className="text-3xl mb-4 tracking-wider">╔═══ DETECTIONS BY WEEK (LAST 7 DAYS) ═══╗</h2>
+          <h2 className="text-3xl mb-4 tracking-wider">╔═══ DETECTIONS BY DAY (LAST 7 DAYS) ═══╗</h2>
           {hourlyData.length > 0 ? (
             <ResponsiveContainer width="100%" height={350}>
               <LineChart data={hourlyData}>

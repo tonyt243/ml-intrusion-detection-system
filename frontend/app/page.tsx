@@ -345,7 +345,7 @@ export default function Dashboard() {
           <div className="flex gap-2">
             <button
               onClick={handleClear}
-              className="px-6 py-3 border-2 border-green-400 bg-black hover:bg-green-400 hover:text-black transition-all text-lg tracking-wider"
+              className="px-6 py-3 border-2 border-red-400 bg-black hover:bg-red-400 hover:text-black transition-all text-lg tracking-wider text-red-400"
             >
               [CLEAR LOG]
             </button>
@@ -392,10 +392,10 @@ export default function Dashboard() {
         {/* Stats Grid */}
         <div className="grid grid-cols-4 gap-4 mb-6">
           {[
-            { label: 'TOTAL PACKETS', value: statistics?.total_packets || 0, symbol: '█' },
-            { label: 'THREATS DETECTED', value: statistics?.attacks_detected || 0, symbol: '▲', danger: true },
-            { label: 'SAFE PACKETS', value: statistics?.normal_packets || 0, symbol: '●' },
-            { label: 'THREAT RATIO', value: `${((statistics?.attack_rate || 0) * 100).toFixed(1)}%`, symbol: '◆', danger: (statistics?.attack_rate || 0) > 0.5 }
+            { label: 'TOTAL PACKETS', value: statistics?.total_packets || 0, symbol: '◎' },
+            { label: 'THREATS DETECTED', value: statistics?.attacks_detected || 0, symbol: '⚠', danger: true },
+            { label: 'SAFE PACKETS', value: statistics?.normal_packets || 0, symbol: '✓' },
+            { label: 'THREAT RATIO', value: `${((statistics?.attack_rate || 0) * 100).toFixed(1)}%`, symbol: '⚡', danger: (statistics?.attack_rate || 0) > 0.5 }
           ].map((stat, idx) => (
             <motion.div
               key={idx}
