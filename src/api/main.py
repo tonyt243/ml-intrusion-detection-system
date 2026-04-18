@@ -12,6 +12,7 @@ from database import get_db, Detection as DBDetection
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 from fastapi import Depends
+from packet_capture import PacketCapturer
 
 
 load_dotenv()
@@ -81,6 +82,36 @@ app = FastAPI(
     description="Real-time Intrusion Detection System using Machine Learning",
     version="1.0.0"
 )
+
+# Initialize packet capturer
+capturer = PacketCapturer()
+captured_packets = []
+
+def handle_captured_packet(packet_data):
+    """Callback for captured packets"""
+    # Run detection on captured packet
+    try:
+        features = packet_data['features']
+        result = detector.detect(features)
+        
+        # Add to captured packets list
+        captured_packets.append({
+            'timestamp': packet_data['timestamp'],
+            'src_ip': packet_data['src_ip'],
+            'dst_ip': packet_data['dst_ip'],
+            'protocol': packet_data['protocol'],
+            'size': packet_data['size'],
+            'is_attack': result['is_attack'],
+            'alert_level': result.get('alert_level', 'UNKNOWN'),
+            'attack_type': classify_attack_type(features) if result['is_attack'] else None
+        })
+        
+        # Keep only last 100 packets
+        if len(captured_packets) > 100:
+            captured_packets.pop(0)
+            
+    except Exception as e:
+        print(f"Error processing captured packet: {e}")
 
 # CORS middleware (allows frontend to connect)
 app.add_middleware(
@@ -474,6 +505,44 @@ async def websocket_endpoint(websocket: WebSocket):
             
     except WebSocketDisconnect:
         manager.disconnect(websocket)
+
+@app.post("/capture/start")
+async def start_capture(interface: Optional[str] = None):
+    """Start live packet capture"""
+    try:
+        success = capturer.start_capture(interface=interface, callback=handle_captured_packet)
+        if success:
+            return {"message": "Packet capture started", "interface": interface or "default"}
+        else:
+            return {"message": "Capture already running"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Capture start error: {str(e)}")
+
+@app.post("/capture/stop")
+async def stop_capture():
+    """Stop live packet capture"""
+    try:
+        capturer.stop_capture()
+        return {"message": "Packet capture stopped"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Capture stop error: {str(e)}")
+
+@app.get("/capture/status")
+async def get_capture_status():
+    """Get capture status"""
+    status = capturer.get_status()
+    return {
+        "is_capturing": status['is_capturing'],
+        "packets_captured": len(captured_packets)
+    }
+
+@app.get("/capture/packets")
+async def get_captured_packets(limit: int = 50):
+    """Get recently captured packets"""
+    return {
+        "packets": captured_packets[-limit:],
+        "count": len(captured_packets)
+    }
 
 
 # STARTUP EVENT
