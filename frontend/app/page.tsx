@@ -362,6 +362,12 @@ export default function Dashboard() {
             >
               [ANALYTICS]
             </Link>
+            <Link
+              href="/capture"
+              className="px-6 py-3 border-2 border-cyan-400 bg-black hover:bg-cyan-400 hover:text-black transition-all text-lg tracking-wider text-cyan-400 inline-block"
+            >
+              [LIVE CAPTURE]
+           </Link>
           </div>
         </motion.div>
 
