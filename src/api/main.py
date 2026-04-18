@@ -537,7 +537,7 @@ async def get_capture_status():
     }
 
 @app.get("/capture/packets")
-async def get_captured_packets(limit: int = 50):
+async def get_captured_packets(limit: int = 100):
     """Get recently captured packets"""
     return {
         "packets": captured_packets[-limit:],

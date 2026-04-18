@@ -36,7 +36,7 @@ export default function LiveCapture() {
 
   const fetchPackets = async () => {
     try {
-      const response = await axios.get(`${API_URL}/capture/packets?limit=50`);
+      const response = await axios.get(`${API_URL}/capture/packets?limit=100`);
       setPackets(response.data.packets.reverse()); // Show newest first
     } catch (error) {
       console.error('Error fetching packets:', error);
