@@ -43,6 +43,8 @@ class Detection(Base):
     src_bytes = Column(Integer, nullable=True)
     dst_bytes = Column(Integer, nullable=True)
 
+    all_features = Column(String, nullable=True)
+
 
 # Create tables if they don't exist
 print("Creating database tables...")

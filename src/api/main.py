@@ -247,7 +247,8 @@ async def detect_packet(packet: PacketFeatures, db: Session = Depends(get_db)):
             service=packet_dict.get('service'),
             flag=packet_dict.get('flag'),
             src_bytes=packet_dict.get('src_bytes'),
-            dst_bytes=packet_dict.get('dst_bytes')
+            dst_bytes=packet_dict.get('dst_bytes'),
+            all_features=json.dumps(packet_dict) 
         )
         
         db.add(db_detection)
@@ -315,6 +316,7 @@ async def get_recent_detections(limit: int = 10, db: Session = Depends(get_db)):
         formatted = []
         for detection in recent:
             formatted.append({
+                "id": detection.id,
                 "timestamp": detection.timestamp.isoformat(),
                 "is_attack": detection.is_attack,
                 "alert_level": detection.alert_level,
@@ -544,6 +546,90 @@ async def get_captured_packets(limit: int = 100):
         "count": len(captured_packets)
     }
 
+@app.get("/detection/{detection_id}")
+async def get_detection_detail(detection_id: int, db: Session = Depends(get_db)):
+    """
+    Get detailed information about a specific detection
+    """
+    try:
+        detection = db.query(DBDetection).filter(DBDetection.id == detection_id).first()
+        
+        if not detection:
+            raise HTTPException(status_code=404, detail="Detection not found")
+        
+        # Parse all features from JSON
+        all_features = {}
+        if detection.all_features:
+            try:
+                all_features = json.loads(detection.all_features)
+            except:
+                all_features = {}
+        
+        # Extract key features for display
+        key_features = {
+            # Basic connection info
+            "duration": all_features.get("duration", 0),
+            "protocol_type": all_features.get("protocol_type", "N/A"),
+            "service": all_features.get("service", "N/A"),
+            "flag": all_features.get("flag", "N/A"),
+            
+            # Byte counts
+            "src_bytes": all_features.get("src_bytes", 0),
+            "dst_bytes": all_features.get("dst_bytes", 0),
+            
+            # Connection counts
+            "count": all_features.get("count", 0),
+            "srv_count": all_features.get("srv_count", 0),
+            "dst_host_count": all_features.get("dst_host_count", 0),
+            
+            # Error rates
+            "serror_rate": all_features.get("serror_rate", 0.0),
+            "srv_serror_rate": all_features.get("srv_serror_rate", 0.0),
+            "dst_host_serror_rate": all_features.get("dst_host_serror_rate", 0.0),
+            
+            # Important rates
+            "same_srv_rate": all_features.get("same_srv_rate", 0.0),
+            "dst_host_same_srv_rate": all_features.get("dst_host_same_srv_rate", 0.0),
+            
+            # Security indicators
+            "logged_in": all_features.get("logged_in", 0),
+            "num_failed_logins": all_features.get("num_failed_logins", 0),
+            "root_shell": all_features.get("root_shell", 0),
+            "num_compromised": all_features.get("num_compromised", 0)
+        }
+        
+        # Format detailed response
+        detail = {
+            "id": detection.id,
+            "timestamp": detection.timestamp.isoformat(),
+            "is_attack": detection.is_attack,
+            "alert_level": detection.alert_level,
+            "reason": detection.reason,
+            "attack_type": detection.attack_type,
+            
+            # Model predictions
+            "predictions": {
+                "random_forest": {
+                    "confidence": detection.rf_confidence,
+                    "attack_probability": detection.rf_attack_probability,
+                    "verdict": "ATTACK" if detection.rf_attack_probability and detection.rf_attack_probability > 0.5 else "NORMAL"
+                },
+                "isolation_forest": {
+                    "anomaly_score": detection.iso_anomaly_score,
+                    "verdict": "ANOMALY" if detection.iso_anomaly_score and detection.iso_anomaly_score < -0.5 else "NORMAL"
+                }
+            },
+            
+            # Key packet features
+            "key_features": key_features
+        }
+        
+        return detail
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error retrieving detection: {str(e)}")
 
 # STARTUP EVENT
 @app.on_event("startup")

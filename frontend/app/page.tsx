@@ -9,6 +9,7 @@ import Link from 'next/link';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 interface Detection {
+  id: number;
   timestamp: string;
   is_attack: boolean;
   alert_level: string;
@@ -24,6 +25,46 @@ interface Detection {
       is_attack: boolean;
       anomaly_score: number;
     };
+  };
+}
+
+interface DetectionDetail {
+  id: number;
+  timestamp: string;
+  is_attack: boolean;
+  alert_level: string;
+  reason: string;
+  attack_type: string | null;
+  predictions: {
+    random_forest: {
+      confidence: number;
+      attack_probability: number;
+      verdict: string;
+    };
+    isolation_forest: {
+      anomaly_score: number;
+      verdict: string;
+    };
+  };
+  key_features: {
+    duration: number;
+    protocol_type: string;
+    service: string;
+    flag: string;
+    src_bytes: number;
+    dst_bytes: number;
+    count: number;
+    srv_count: number;
+    dst_host_count: number;
+    serror_rate: number;
+    srv_serror_rate: number;
+    dst_host_serror_rate: number;
+    same_srv_rate: number;
+    dst_host_same_srv_rate: number;
+    logged_in: number;
+    num_failed_logins: number;
+    root_shell: number;
+    num_compromised: number;
   };
 }
 
@@ -47,15 +88,15 @@ const LiveClock = () => {
   }, []);
 
   return (
-  <div className="text-base opacity-80">
-    {time.toLocaleTimeString('en-US', { 
-      hour: '2-digit', 
-      minute: '2-digit', 
-      second: '2-digit',
-      hour12: true 
-    })}
-  </div>
-);
+    <div className="text-base opacity-80">
+      {time.toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit', 
+        second: '2-digit',
+        hour12: true 
+      })}
+    </div>
+  );
 };
 
 export default function Dashboard() {
@@ -64,6 +105,8 @@ export default function Dashboard() {
   const [isConnected, setIsConnected] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [bootSequence, setBootSequence] = useState(true);
+  const [selectedDetection, setSelectedDetection] = useState<DetectionDetail | null>(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
 
   const fetchStats = async () => {
     try {
@@ -82,6 +125,16 @@ export default function Dashboard() {
       setRecentDetections(response.data.recent_detections || []);
     } catch (error) {
       console.error('Error fetching detections:', error);
+    }
+  };
+
+  const fetchDetectionDetail = async (detectionId: number) => {
+    try {
+      const response = await axios.get(`${API_URL}/detection/${detectionId}`);
+      setSelectedDetection(response.data);
+      setShowDetailModal(true);
+    } catch (error) {
+      console.error('Error fetching detection detail:', error);
     }
   };
 
@@ -337,15 +390,15 @@ export default function Dashboard() {
                 />
                 <span className="text-s tracking-wider">{isConnected ? '[ONLINE]' : '[OFFLINE]'}</span>
               </div>
-            {/* Live Clock */}
-            <LiveClock /> 
+              {/* Live Clock */}
+              <LiveClock /> 
             </div>
           </div>
 
           <div className="flex gap-2">
             <button
               onClick={handleClear}
-              className="px-6 py-3 border-2 border-red-400 bg-black hover:bg-red-400 hover:text-black transition-all text-lg tracking-wider text-red-400"
+              className="px-6 py-3 border-2 border-green-400 bg-black hover:bg-green-400 hover:text-black transition-all text-lg tracking-wider"
             >
               [CLEAR LOG]
             </button>
@@ -367,7 +420,7 @@ export default function Dashboard() {
               className="px-6 py-3 border-2 border-cyan-400 bg-black hover:bg-cyan-400 hover:text-black transition-all text-lg tracking-wider text-cyan-400 inline-block"
             >
               [LIVE CAPTURE]
-           </Link>
+            </Link>
           </div>
         </motion.div>
 
@@ -398,10 +451,10 @@ export default function Dashboard() {
         {/* Stats Grid */}
         <div className="grid grid-cols-4 gap-4 mb-6">
           {[
-            { label: 'TOTAL PACKETS', value: statistics?.total_packets || 0, symbol: '◎' },
-            { label: 'THREATS DETECTED', value: statistics?.attacks_detected || 0, symbol: '⚠', danger: true },
-            { label: 'SAFE PACKETS', value: statistics?.normal_packets || 0, symbol: '✓' },
-            { label: 'THREAT RATIO', value: `${((statistics?.attack_rate || 0) * 100).toFixed(1)}%`, symbol: '⚡', danger: (statistics?.attack_rate || 0) > 0.5 }
+            { label: 'TOTAL PACKETS', value: statistics?.total_packets || 0, symbol: '█' },
+            { label: 'THREATS DETECTED', value: statistics?.attacks_detected || 0, symbol: '▲', danger: true },
+            { label: 'SAFE PACKETS', value: statistics?.normal_packets || 0, symbol: '●' },
+            { label: 'THREAT RATIO', value: `${((statistics?.attack_rate || 0) * 100).toFixed(1)}%`, symbol: '◆', danger: (statistics?.attack_rate || 0) > 0.5 }
           ].map((stat, idx) => (
             <motion.div
               key={idx}
@@ -544,6 +597,7 @@ export default function Dashboard() {
                   <th className="pb-2 text-left">REASON</th>
                   <th className="pb-2 text-left">RF_CONF</th>
                   <th className="pb-2 text-left">ISO_SCORE</th>
+                  <th className="pb-2 text-left">ACTION</th>
                 </tr>
               </thead>
               <tbody>
@@ -589,11 +643,19 @@ export default function Dashboard() {
                       <td className="py-2">
                         {detection.predictions?.isolation_forest?.anomaly_score?.toFixed(3) || 'N/A'}
                       </td>
+                      <td className="py-2">
+                        <button
+                          onClick={() => fetchDetectionDetail(detection.id)}
+                          className="px-3 py-1 border border-green-400 hover:bg-green-400 hover:text-black transition-all text-sm"
+                        >
+                          [DETAILS]
+                        </button>
+                      </td>
                     </motion.tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={7} className="py-8 text-center opacity-60">
+                    <td colSpan={8} className="py-8 text-center opacity-60">
                       NO DETECTIONS RECORDED // SYSTEM IDLE
                     </td>
                   </tr>
@@ -603,6 +665,249 @@ export default function Dashboard() {
           </div>
         </motion.div>
 
+        {/* Detail Modal */}
+        <AnimatePresence>
+          {showDetailModal && selectedDetection && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-6"
+              onClick={() => setShowDetailModal(false)}
+            >
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                className="border-4 border-green-400 bg-black p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto custom-scrollbar"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex justify-between items-start mb-6">
+                  <h2 className="text-4xl font-bold glow-text">
+                    [[ DETECTION DETAILS ]]
+                  </h2>
+                  <button
+                    onClick={() => setShowDetailModal(false)}
+                    className="px-4 py-2 border-2 border-red-500 text-red-500 hover:bg-red-500 hover:text-black transition-all"
+                  >
+                    [CLOSE]
+                  </button>
+                </div>
+
+                {/* Detection Status */}
+                <div className="border-2 border-green-400 p-4 mb-4">
+                  <h3 className="text-2xl mb-3">╔═══ STATUS ═══╗</h3>
+                  <div className="grid grid-cols-2 gap-4 text-lg">
+                    <div>
+                      <span className="opacity-60">Verdict:</span>{' '}
+                      <span className={selectedDetection.is_attack ? 'text-red-500' : 'text-green-400'}>
+                        {selectedDetection.is_attack ? 'THREAT DETECTED' : 'NORMAL TRAFFIC'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="opacity-60">Alert Level:</span> {selectedDetection.alert_level}
+                    </div>
+                    <div>
+                      <span className="opacity-60">Attack Type:</span>{' '}
+                      <span className="text-amber-400">
+                        {selectedDetection.attack_type || 'N/A'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="opacity-60">Timestamp:</span>{' '}
+                      {new Date(selectedDetection.timestamp).toLocaleString()}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Model Predictions */}
+                <div className="border-2 border-green-400 p-4 mb-4">
+                  <h3 className="text-2xl mb-3">╔═══ MODEL PREDICTIONS ═══╗</h3>
+                  
+                  {/* Random Forest */}
+                  <div className="mb-4">
+                    <div className="text-xl text-amber-400 mb-2">RANDOM FOREST CLASSIFIER:</div>
+                    <div className="grid grid-cols-2 gap-4 text-lg ml-4">
+                      <div>
+                        <span className="opacity-60">Verdict:</span>{' '}
+                        <span className={selectedDetection.predictions.random_forest.verdict === 'ATTACK' ? 'text-red-500' : 'text-green-400'}>
+                          {selectedDetection.predictions.random_forest.verdict}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="opacity-60">Confidence:</span>{' '}
+                        {(selectedDetection.predictions.random_forest.confidence * 100).toFixed(1)}%
+                      </div>
+                      <div>
+                        <span className="opacity-60">Attack Probability:</span>{' '}
+                        {(selectedDetection.predictions.random_forest.attack_probability * 100).toFixed(1)}%
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Isolation Forest */}
+                  <div>
+                    <div className="text-xl text-amber-400 mb-2">ISOLATION FOREST (ANOMALY DETECTION):</div>
+                    <div className="grid grid-cols-2 gap-4 text-lg ml-4">
+                      <div>
+                        <span className="opacity-60">Verdict:</span>{' '}
+                        <span className={selectedDetection.predictions.isolation_forest.verdict === 'ANOMALY' ? 'text-red-500' : 'text-green-400'}>
+                          {selectedDetection.predictions.isolation_forest.verdict}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="opacity-60">Anomaly Score:</span>{' '}
+                        {selectedDetection.predictions.isolation_forest.anomaly_score.toFixed(3)}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Key Packet Features */}
+<div className="border-2 border-green-400 p-4 mb-4">
+  <h3 className="text-2xl mb-3">╔═══ KEY PACKET FEATURES ═══╗</h3>
+  
+  {/* Basic Connection Info */}
+  <div className="mb-4">
+    <h4 className="text-xl text-amber-400 mb-2">CONNECTION INFO:</h4>
+    <div className="grid grid-cols-4 gap-3 text-base ml-4">
+      <div>
+        <span className="opacity-60">Duration:</span>{' '}
+        <span className="text-green-400">{selectedDetection.key_features.duration}s</span>
+      </div>
+      <div>
+        <span className="opacity-60">Protocol:</span>{' '}
+        <span className="text-green-400">{selectedDetection.key_features.protocol_type.toUpperCase()}</span>
+      </div>
+      <div>
+        <span className="opacity-60">Service:</span>{' '}
+        <span className="text-green-400">{selectedDetection.key_features.service}</span>
+      </div>
+      <div>
+        <span className="opacity-60">Flag:</span>{' '}
+        <span className="text-green-400">{selectedDetection.key_features.flag}</span>
+      </div>
+    </div>
+  </div>
+
+  {/* Data Transfer */}
+  <div className="mb-4">
+    <h4 className="text-xl text-amber-400 mb-2">DATA TRANSFER:</h4>
+    <div className="grid grid-cols-2 gap-3 text-base ml-4">
+      <div>
+        <span className="opacity-60">Source Bytes:</span>{' '}
+        <span className="text-green-400">{selectedDetection.key_features.src_bytes.toLocaleString()}</span>
+      </div>
+      <div>
+        <span className="opacity-60">Destination Bytes:</span>{' '}
+        <span className="text-green-400">{selectedDetection.key_features.dst_bytes.toLocaleString()}</span>
+      </div>
+    </div>
+  </div>
+
+  {/* Connection Statistics */}
+  <div className="mb-4">
+    <h4 className="text-xl text-amber-400 mb-2">CONNECTION STATISTICS:</h4>
+    <div className="grid grid-cols-3 gap-3 text-base ml-4">
+      <div>
+        <span className="opacity-60">Connection Count:</span>{' '}
+        <span className="text-green-400">{selectedDetection.key_features.count}</span>
+      </div>
+      <div>
+        <span className="opacity-60">Service Count:</span>{' '}
+        <span className="text-green-400">{selectedDetection.key_features.srv_count}</span>
+      </div>
+      <div>
+        <span className="opacity-60">Dest Host Count:</span>{' '}
+        <span className="text-green-400">{selectedDetection.key_features.dst_host_count}</span>
+      </div>
+    </div>
+  </div>
+
+  {/* Error Rates */}
+  <div className="mb-4">
+    <h4 className="text-xl text-amber-400 mb-2">ERROR RATES:</h4>
+    <div className="grid grid-cols-3 gap-3 text-base ml-4">
+      <div>
+        <span className="opacity-60">Service Error Rate:</span>{' '}
+        <span className={selectedDetection.key_features.serror_rate > 0.5 ? 'text-red-500' : 'text-green-400'}>
+          {(selectedDetection.key_features.serror_rate * 100).toFixed(1)}%
+        </span>
+      </div>
+      <div>
+        <span className="opacity-60">Srv Service Error:</span>{' '}
+        <span className={selectedDetection.key_features.srv_serror_rate > 0.5 ? 'text-red-500' : 'text-green-400'}>
+          {(selectedDetection.key_features.srv_serror_rate * 100).toFixed(1)}%
+        </span>
+      </div>
+      <div>
+        <span className="opacity-60">Dest Host Error:</span>{' '}
+        <span className={selectedDetection.key_features.dst_host_serror_rate > 0.5 ? 'text-red-500' : 'text-green-400'}>
+          {(selectedDetection.key_features.dst_host_serror_rate * 100).toFixed(1)}%
+        </span>
+      </div>
+    </div>
+  </div>
+
+  {/* Service Rates */}
+  <div className="mb-4">
+    <h4 className="text-xl text-amber-400 mb-2">SERVICE RATES:</h4>
+    <div className="grid grid-cols-2 gap-3 text-base ml-4">
+      <div>
+        <span className="opacity-60">Same Service Rate:</span>{' '}
+        <span className="text-green-400">{(selectedDetection.key_features.same_srv_rate * 100).toFixed(1)}%</span>
+      </div>
+      <div>
+        <span className="opacity-60">Dest Same Service:</span>{' '}
+        <span className="text-green-400">{(selectedDetection.key_features.dst_host_same_srv_rate * 100).toFixed(1)}%</span>
+      </div>
+    </div>
+  </div>
+
+  {/* Security Indicators */}
+  <div>
+    <h4 className="text-xl text-amber-400 mb-2">SECURITY INDICATORS:</h4>
+    <div className="grid grid-cols-4 gap-3 text-base ml-4">
+      <div>
+        <span className="opacity-60">Logged In:</span>{' '}
+        <span className={selectedDetection.key_features.logged_in === 1 ? 'text-green-400' : 'text-red-500'}>
+          {selectedDetection.key_features.logged_in === 1 ? 'YES' : 'NO'}
+        </span>
+      </div>
+      <div>
+        <span className="opacity-60">Failed Logins:</span>{' '}
+        <span className={selectedDetection.key_features.num_failed_logins > 0 ? 'text-red-500' : 'text-green-400'}>
+          {selectedDetection.key_features.num_failed_logins}
+        </span>
+      </div>
+      <div>
+        <span className="opacity-60">Root Shell:</span>{' '}
+        <span className={selectedDetection.key_features.root_shell > 0 ? 'text-red-500' : 'text-green-400'}>
+          {selectedDetection.key_features.root_shell}
+        </span>
+      </div>
+      <div>
+        <span className="opacity-60">Compromised:</span>{' '}
+        <span className={selectedDetection.key_features.num_compromised > 0 ? 'text-red-500' : 'text-green-400'}>
+          {selectedDetection.key_features.num_compromised}
+        </span>
+      </div>
+    </div>
+  </div>
+</div>
+
+                {/* Reason */}
+                <div className="border-2 border-green-400 p-4">
+                  <h3 className="text-2xl mb-3">╔═══ ANALYSIS ═══╗</h3>
+                  <div className="text-lg opacity-80">
+                    {selectedDetection.reason}
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Footer */}
         <motion.div 
           initial={{ opacity: 0 }}
@@ -611,111 +916,110 @@ export default function Dashboard() {
           className="mt-6 text-center text-xs opacity-60 border-t-2 border-green-400/30 pt-4"
         >
           <p>RANDOM FOREST (76.77% ACCURACY) + ISOLATION FOREST</p>
-          
         </motion.div>
       </div>
 
       {/* Retro CRT Styles */}
       <style jsx>{`
-  @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
-  
-  .crt-screen {
-  font-family: 'VT323', monospace;
-  font-size: 2.5rem;
-  animation: flicker 0.15s infinite;
-}
+        @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+        
+        .crt-screen {
+          font-family: 'VT323', monospace;
+          font-size: 2.5rem;
+          animation: flicker 0.15s infinite;
+        }
 
-  @keyframes flicker {
-    0% { opacity: 0.97; }
-    50% { opacity: 1; }
-    100% { opacity: 0.97; }
-  }
+        @keyframes flicker {
+          0% { opacity: 0.97; }
+          50% { opacity: 1; }
+          100% { opacity: 0.97; }
+        }
 
-  .scanlines {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(
-      to bottom,
-      rgba(0, 0, 0, 0) 50%,
-      rgba(0, 255, 65, 0.02) 50%
-    );
-    background-size: 100% 4px;
-    z-index: 1;
-    pointer-events: none;
-    animation: scan 8s linear infinite;
-  }
+        .scanlines {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(
+            to bottom,
+            rgba(0, 0, 0, 0) 50%,
+            rgba(0, 255, 65, 0.02) 50%
+          );
+          background-size: 100% 4px;
+          z-index: 1;
+          pointer-events: none;
+          animation: scan 8s linear infinite;
+        }
 
-  @keyframes scan {
-    0% { transform: translateY(0); }
-    100% { transform: translateY(4px); }
-  }
+        @keyframes scan {
+          0% { transform: translateY(0); }
+          100% { transform: translateY(4px); }
+        }
 
-  .crt-glow {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: radial-gradient(
-      ellipse at center,
-      rgba(0, 255, 65, 0.05) 0%,
-      transparent 70%
-    );
-    z-index: 0;
-  }
+        .crt-glow {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: radial-gradient(
+            ellipse at center,
+            rgba(0, 255, 65, 0.05) 0%,
+            transparent 70%
+          );
+          z-index: 0;
+        }
 
-  .glow-text {
-  text-shadow: 
-    0 0 5px #00ff41,
-    0 0 10px #00ff41;
-  font-size: 1.2em;
-}
+        .glow-text {
+          text-shadow: 
+            0 0 5px #00ff41,
+            0 0 10px #00ff41;
+          font-size: 1.2em;
+        }
 
-.glow-text-red {
-  text-shadow: 
-    0 0 5px #ff0040,
-    0 0 10px #ff0040;
-  font-size: 1.2em;
-}
+        .glow-text-red {
+          text-shadow: 
+            0 0 5px #ff0040,
+            0 0 10px #ff0040;
+          font-size: 1.2em;
+        }
 
-  .custom-scrollbar::-webkit-scrollbar {
-    width: 8px;
-  }
-  
-  .custom-scrollbar::-webkit-scrollbar-track {
-    background: #000;
-    border: 1px solid #00ff41;
-  }
-  
-  .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: #00ff41;
-    border: 1px solid #000;
-  }
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 8px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: #000;
+          border: 1px solid #00ff41;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: #00ff41;
+          border: 1px solid #000;
+        }
 
-  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: #00ff88;
-  }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #00ff88;
+        }
 
-  /* CRT curve effect */
-  .crt-screen::before {
-    content: "";
-    display: block;
-    position: absolute;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    right: 0;
-    background: 
-      linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%),
-      linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-    z-index: 2;
-    background-size: 100% 2px, 3px 100%;
-    pointer-events: none;
-  }
-`}</style>
+        /* CRT curve effect */
+        .crt-screen::before {
+          content: "";
+          display: block;
+          position: absolute;
+          top: 0;
+          left: 0;
+          bottom: 0;
+          right: 0;
+          background: 
+            linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%),
+            linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+          z-index: 2;
+          background-size: 100% 2px, 3px 100%;
+          pointer-events: none;
+        }
+      `}</style>
     </div>
   );
-}"// Cache bust" 
+}
