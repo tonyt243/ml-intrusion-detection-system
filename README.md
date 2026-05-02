@@ -156,4 +156,59 @@ ml-intrusion-detection-system/
 │   └── models/                  # Trained models
 └── README.md
 ```
+### Setup
+
+**1. Clone the repository:**
+```bash
+git clone https://github.com/tonyt243/ml-intrusion-detection-system.git
+cd ml-intrusion-detection-system
+```
+
+**2. Create and activate virtual environment:**
+
+On Windows:
+```bash
+python -m venv venv
+venv\Scripts\activate
+```
+
+On Mac/Linux:
+```bash
+python3 -m venv venv
+source venv/bin/activate
+```
+
+**3. Install Python dependencies:**
+```bash
+cd src/api
+pip install -r requirements.txt
+```
+
+**4. Start the API server:**
+```bash
+python main.py
+```
+
+The API will be available at `http://localhost:8000`
+
+### Frontend Setup
+
+**1. Open a new terminal and navigate to frontend directory:**
+```bash
+cd frontend
+```
+
+**2. Install Node dependencies:**
+```bash
+npm install
+```
+
+**3. Start the development server:**
+```bash
+npm run dev
+```
+
+The dashboard will be available at `http://localhost:3000`
+
+
 
