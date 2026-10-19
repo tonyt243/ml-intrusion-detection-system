@@ -5,6 +5,8 @@ A real-time network intrusion detection system using machine learning algorithms
 ## Live Demo
 
 - **Dashboard**: [https://ml-intrusion-detection-system.vercel.app/](https://ml-intrusion-detection-system.vercel.app/)
+- **Demo**: https:[//youtu.be/_gxZGTbHzw0?is=xvkIyX5JLLRjJX9k](https://youtu.be/_gxZGTbHzw0?is=xvkIyX5JLLRjJX9k)
+
 
 
 ## Overview
